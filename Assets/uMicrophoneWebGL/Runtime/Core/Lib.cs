@@ -207,21 +207,21 @@ public static class Lib
     public static extern bool IsRecording();
 #else
     private static GameObject _recordGameObj = null;
-    private static EditorMicrophoneDataRetriever _micInputRetriever = null;
+    // private static EditorMicrophoneDataRetriever _micInputRetriever = null;
     public static int micChannelsForEditor { get; set; } = 1;
     
     public static void Start()
     {
         if (_recordGameObj) return;
         
-        _recordGameObj = new GameObject("[uMicrophoneWebGL.EditorMicrophoneInputRetriever]");
+        // _recordGameObj = new GameObject("[uMicrophoneWebGL.EditorMicrophoneInputRetriever]");
         
-        _micInputRetriever = _recordGameObj.AddComponent<EditorMicrophoneDataRetriever>();
-        _micInputRetriever.dataEvent.AddListener(x => dataEvent.Invoke(x));
-        _micInputRetriever.micChannels = micChannelsForEditor;
-        var deviceId = GetDeviceId(_deviceIndex);
-        var freq = GetSampleRate(_deviceIndex);
-        _micInputRetriever.Begin(deviceId, freq);
+        // _micInputRetriever = _recordGameObj.AddComponent<EditorMicrophoneDataRetriever>();
+        // _micInputRetriever.dataEvent.AddListener(x => dataEvent.Invoke(x));
+        // _micInputRetriever.micChannels = micChannelsForEditor;
+        // var deviceId = GetDeviceId(_deviceIndex);
+        // var freq = GetSampleRate(_deviceIndex);
+        // _micInputRetriever.Begin(deviceId, freq);
         
         startEvent.Invoke();
     }
@@ -230,8 +230,8 @@ public static class Lib
     {
         if (!_recordGameObj) return;
         
-        _micInputRetriever.End();
-        UnityEngine.Object.Destroy(_recordGameObj);
+        // _micInputRetriever.End();
+        // UnityEngine.Object.Destroy(_recordGameObj);
         stopEvent.Invoke();
     }
 
