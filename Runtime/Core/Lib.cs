@@ -7,14 +7,10 @@ namespace uMicrophoneWebGL
 {
     
 [Serializable]
-public class TimingEvent : UnityEvent
-{
-}
+public class TimingEvent : UnityEvent { }
     
 [Serializable]
-public class DataEvent : UnityEvent<float[]> 
-{
-}
+public class DataEvent : UnityEvent<float[]> { }
 
 public static class Lib
 {
@@ -38,75 +34,26 @@ public static class Lib
     static void OnReady()
     {
         isReady = true;
-        
-        try
-        {
-            readyEvent.Invoke();
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e.Message);
-        }
+        try { readyEvent.Invoke(); } catch (Exception e) { Debug.LogError(e.Message); }
     }
     
     [AOT.MonoPInvokeCallback(typeof(Action<IntPtr, int>))]
     static void OnDataReceived(IntPtr ptr, int length)
     {
-        if (_dataBuffer == null || _dataBuffer.Length != length)
-        {
-            _dataBuffer = new float[length];
-        }
-        
+        if (_dataBuffer == null || _dataBuffer.Length != length) _dataBuffer = new float[length];
         Marshal.Copy(ptr, _dataBuffer, 0, length);
-        
-        try
-        {
-            dataEvent.Invoke(_dataBuffer);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e.Message);
-        }
+
+        try { dataEvent.Invoke(_dataBuffer); } catch (Exception e) { Debug.LogError(e.Message); }
     }
     
     [AOT.MonoPInvokeCallback(typeof(Action))]
-    static void OnDeviceListUpdated()
-    {
-        try
-        {
-            deviceListEvent.Invoke();
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e.Message);
-        }
-    }
+    static void OnDeviceListUpdated() { try { deviceListEvent.Invoke(); } catch (Exception e) { Debug.LogError(e.Message); } }
     
     [AOT.MonoPInvokeCallback(typeof(Action))]
-    static void OnStarted()
-    {
-        try
-        {
-            startEvent.Invoke();
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e.Message);
-        }
-    }
+    static void OnStarted() { try { startEvent.Invoke(); } catch (Exception e) { Debug.LogError(e.Message); } }
     
     [AOT.MonoPInvokeCallback(typeof(Action))]
-    static void OnStopped()
-    {
-        try
-        {
-            stopEvent.Invoke();
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e.Message);
-        }
-    }
+    static void OnStopped() { try { stopEvent.Invoke(); } catch (Exception e) { Debug.LogError(e.Message); } }
 
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal", EntryPoint = "uMicrophoneWebGL_Initialize")]
@@ -134,10 +81,7 @@ public static class Lib
     [DllImport("__Internal", EntryPoint = "uMicrophoneWebGL_RefreshDeviceList")]
     public static extern void RefreshDeviceList();
 #else
-    public static void RefreshDeviceList()
-    {
-        deviceListEvent.Invoke();
-    }
+    public static void RefreshDeviceList() => deviceListEvent.Invoke();
 #endif
 
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -152,9 +96,7 @@ public static class Lib
     public static extern string GetDeviceId(int index);
 #else
     public static string GetDeviceId(int index) => 
-        index >= 0 && index < Microphone.devices.Length ?
-            Microphone.devices[index] : 
-            "";
+        index >= 0 && index < Microphone.devices.Length ? Microphone.devices[index] : "";
 #endif
 
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -189,11 +131,7 @@ public static class Lib
     public static extern void SetDevice(int index);
 #else
     private static int _deviceIndex = 0;
-
-    public static void SetDevice(int index)
-    {
-        _deviceIndex = index;
-    }
+    public static void SetDevice(int index) { _deviceIndex = index; }
 #endif
 
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -207,36 +145,62 @@ public static class Lib
     public static extern bool IsRecording();
 #else
     private static GameObject _recordGameObj = null;
-    // private static EditorMicrophoneDataRetriever _micInputRetriever = null;
     public static int micChannelsForEditor { get; set; } = 1;
-    
+
+#if UNITY_EDITOR
+    private static EditorMicrophoneDataRetriever _micInputRetriever = null;
+#endif
+
     public static void Start()
     {
         if (_recordGameObj) return;
-        
-        // _recordGameObj = new GameObject("[uMicrophoneWebGL.EditorMicrophoneInputRetriever]");
-        
-        // _micInputRetriever = _recordGameObj.AddComponent<EditorMicrophoneDataRetriever>();
-        // _micInputRetriever.dataEvent.AddListener(x => dataEvent.Invoke(x));
-        // _micInputRetriever.micChannels = micChannelsForEditor;
-        // var deviceId = GetDeviceId(_deviceIndex);
-        // var freq = GetSampleRate(_deviceIndex);
-        // _micInputRetriever.Begin(deviceId, freq);
-        
+        _recordGameObj = new GameObject("[uMicrophoneWebGL.EditorMicrophoneInputRetriever]");
+
+#if UNITY_EDITOR
+        _micInputRetriever = _recordGameObj.AddComponent<EditorMicrophoneDataRetriever>();
+        _micInputRetriever.dataEvent.AddListener(x => dataEvent.Invoke(x));
+        _micInputRetriever.micChannels = micChannelsForEditor;
+        var deviceId = GetDeviceId(_deviceIndex);
+        var freq = GetSampleRate(_deviceIndex);
+        _micInputRetriever.Begin(deviceId, freq);
+#else
+        if (Microphone.devices.Length == 0)
+        {
+            Debug.LogError("❌ No microphone detected!");
+            return;
+        }
+
+        var micName = Microphone.devices[0]; // Select first available mic
+        var micClip = Microphone.Start(micName, true, 10, 44100);
+        Debug.Log($"🎙️ Recording started on: {micName}");
+#endif
+
         startEvent.Invoke();
     }
     
     public static void Stop()
     {
         if (!_recordGameObj) return;
-        
-        // _micInputRetriever.End();
-        // UnityEngine.Object.Destroy(_recordGameObj);
+
+#if UNITY_EDITOR
+        _micInputRetriever.End();
+#else
+        Debug.Log("🛑 Stopping microphone...");
+        Microphone.End(null);
+#endif
+
         stopEvent.Invoke();
     }
 
-    public static bool IsRecording() => _recordGameObj;
+    public static bool IsRecording()
+    {
+#if UNITY_EDITOR
+        return _recordGameObj;
+#else
+        return Microphone.IsRecording(null);
+#endif
+    }
 #endif
 }
-
 }
+
